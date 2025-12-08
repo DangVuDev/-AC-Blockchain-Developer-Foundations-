@@ -25,42 +25,7 @@ main().catch((error) => {
   console.error("Lỗi:", error.message);
 });
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  RESULT - RESULT - RESULT - RESULT - RESULT - RESULT - RESULT - RESULT - RESULT - RESULT - RESULT - RESULT - RESULT
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-      // PS C:\Users\vuvan\OneDrive\Documents\GitHub\-AC-Blockchain-Developer-Foundations-> npx ts-node run.ts bai5_3
-      // ✅ Đã chạy xong bài: bai5_3
-      // Action increment hash:  [object Object]
-      // Current count is: 1
-      // PS C:\Users\vuvan\OneDrive\Documents\GitHub\-AC-Blockchain-Developer-Foundations-> npx ts-node run.ts bai5_3
-      // ✅ Đã chạy xong bài: bai5_3
-      // Action increment hash:  [object Object]
-      // Current count is: 2
-      // PS C:\Users\vuvan\OneDrive\Documents\GitHub\-AC-Blockchain-Developer-Foundations-> npx ts-node run.ts bai5_3
-      // ✅ Đã chạy xong bài: bai5_3
-      // Action increment hash:  [object Object]
-      // Current count is: 3
-      // PS C:\Users\vuvan\OneDrive\Documents\GitHub\-AC-Blockchain-Developer-Foundations-> 
 
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// CONTRACT - CONTRACT - CONTRACT - CONTRACT - CONTRACT - CONTRACT - CONTRACT - CONTRACT - CONTRACT - CONTRACT - CONTRACT 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-      // // SPDX-License-Identifier: MIT
-      // pragma solidity ^0.8.28;
-
-      // contract Counter {
-      //     uint public count;
-
-      //     function increment() public {
-      //         count += 1;
-      //     }
-
-      //     function getCount() public view returns (uint) {
-      //         return count;
-      //     }
-      // }
 

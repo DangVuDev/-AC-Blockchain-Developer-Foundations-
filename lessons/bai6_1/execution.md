@@ -1,3 +1,86 @@
+# Contract 
+
+```
+    // SPDX-License-Identifier: MIT
+      pragma solidity ^0.8.28;
+
+      import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+
+      contract MyToken is ERC20 {
+          uint256 constant TOTAL_TOKEN = 1_000_000 * 10 ** 18;
+
+          constructor() ERC20("J97Token", "J97") {
+              _mint(msg.sender, TOTAL_TOKEN);
+          }
+      }
+```
+---
+
+# Deploy script
+
+```
+   import { DeployFunction } from "hardhat-deploy/types";
+
+      const deployMyToken: DeployFunction = async function (hre) {
+        const { deployer } = await hre.getNamedAccounts();
+        const { deploy } = hre.deployments;
+
+        console.log("====================");
+        console.log(hre.network.name);
+        console.log("====================");
+
+        console.log("====================");
+        console.log("Deploy MyToken Contract");
+        console.log("====================");
+
+        await deploy("MyToken", {
+          contract: "MyToken",
+          from: deployer,
+          args: [],
+          log: true,
+          autoMine: true,
+          skipIfAlreadyDeployed: false,
+        });
+      };
+
+      export default deployMyToken;
+      deployMyToken.tags = ["mytoken"];
+```
+--- 
+
+# Result
+
+```
+    PS D:\Blockchain\ac-hardhat-template> npx hardhat deploy --network sepolia --tags mytoken
+      Generating typings for: 8 artifacts in dir: typechain for target: ethers-v6
+      Successfully generated 34 typings!
+      Compiled 6 Solidity files successfully (evm target: paris).
+       ·------------------------|--------------------------------|--------------------------------·
+       |  Solc version: 0.8.28  ·  Optimizer enabled: true       ·  Runs: 1000                    │
+       ·························|································|·································
+       |  Contract Name         ·  Deployed size (KiB) (change)  ·  Initcode size (KiB) (change)  │
+       ·························|································|·································
+       |  Counter               ·                 0.246 (0.000)  ·                 0.271 (0.000)  │
+       ·························|································|·································
+       |  MyToken               ·                      1.744 ()  ·                      2.692 ()  │
+       ·------------------------|--------------------------------|--------------------------------·
+      ====================
+      sepolia
+      ====================
+      ====================
+      Deploy MyToken Contract
+      ====================
+      deploying "MyToken" (tx: 0x8553a3629dffd1e7364f40270d70da20e8df515cd0b09695d8d1c38204196c1e)...: deployed at 0x995cbF88F691FCc800E686908566D14f69Bf4c75 with 542474 gas
+      PS D:\Blockchain\ac-hardhat-template>
+
+```
+
+---
+
+# Test script
+
+```
 import { ethers } from "ethers";
 
 async function main() {
@@ -335,10 +418,11 @@ async function main() {
 
 main().catch(console.error);
 
+```
 
-
-
-
-
-
-
+```
+    PS C:\Users\vuvan\OneDrive\Documents\GitHub\-AC-Blockchain-Developer-Foundations-> npx ts-node run.ts bai6_1
+    ✅ Đã chạy xong bài: bai6_1
+    Balance of deployer:  1000000000000000000000000
+    PS C:\Users\vuvan\OneDrive\Documents\GitHub\-AC-Blockchain-Developer-Foundations-> 
+```
