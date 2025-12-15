@@ -1,0 +1,2448 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarketMedia NFT Marketplace - LIVE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <script>
+        // Cấu hình Tailwind CSS mở rộng
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'bg-dark': '#0f0f1e', // Màu nền chính
+                        'card': '#1a1a2e', // Màu nền thẻ/modal
+                        'accent': '#16213e', // Màu phụ, nền input
+                        'neon-blue': '#00d4ff',
+                        'neon-cyan': '#00ffea',
+                        'neon-pink': '#ff2e96',
+                        'neon-green': '#39ff14',
+                        'border-glow': '#2a2a4a', // Màu border phụ
+                        'danger-red': '#ff4757', // Màu cho hủy/kết thúc lỗi
+                    },
+                    fontFamily: {
+                        mono: ['Roboto Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'neon': '0 0 15px rgba(0, 212, 255, 0.5)',
+                        'neon-pink': '0 0 15px rgba(255, 46, 150, 0.5)',
+                        'neon-green': '0 0 15px rgba(57, 255, 20, 0.5)',
+                        'card': '0 10px 30px rgba(0, 0, 0, 0.5)',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.6s ease-out',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { 
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            font-family: 'Roboto Mono', monospace;
+            min-height: 100vh;
+        }
+        /* Tùy chỉnh Scrollbar cho theme tối */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f0f1e; }
+        ::-webkit-scrollbar-thumb { background: #00d4ff; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00ffea; }
+
+        /* Hiệu ứng thẻ NFT */
+        .nft-card {
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            border-width: 1px; /* Đảm bảo border-glow hoạt động */
+        }
+        .nft-card:hover {
+            transform: translateY(-12px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 212, 255, 0.3);
+            border-color: #00d4ff;
+        }
+        .nft-card:hover .nft-image {
+            transform: scale(1.05);
+        }
+        .nft-image {
+            transition: transform 0.4s ease;
+        }
+
+        /* Hiệu ứng Nút Neon */
+        .btn-neon {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .btn-neon::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        .btn-neon:hover::after {
+            left: 100%;
+        }
+
+        .tag {
+            border: none; /* Bỏ border nếu đã có màu nền rõ ràng */
+            text-transform: uppercase;
+        }
+        .page-content.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="text-white bg-bg-dark">
+
+    <div id="loading-overlay" class="fixed inset-0 bg-black/90 flex-col items-center justify-center z-[9999] hidden">
+        <div class="w-16 h-16 border-4 border-t-neon-cyan border-r-transparent border-b-neon-blue border-l-transparent rounded-full animate-spin mb-6"></div>
+        <p class="text-neon-cyan text-lg font-medium">Đang chờ xác nhận giao dịch Metamask...</p>
+    </div>
+
+    <header class="sticky top-0 z-50 backdrop-blur-lg bg-bg-dark/80 border-b border-border-glow shadow-neon">
+    <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+        <h1 class="text-4xl font-bold bg-gradient-to-r from-neon-pink to-neon-cyan bg-clip-text text-transparent">
+            MarketMedia
+        </h1>
+
+        <nav class="hidden md:flex space-x-8 text-lg">
+            <button onclick="showPage('explore')" id="nav-explore" class="nav-item text-neon-cyan transition hover:text-neon-cyan">🌐 Marketplace</button>
+            <button onclick="showPage('mint')" id="nav-mint" class="nav-item hover:text-neon-cyan transition">🔨 Mint NFT</button>
+            <button onclick="showPage('profile')" id="nav-profile" class="nav-item hover:text-neon-cyan transition">👤 Profile</button>
+            <button onclick="showPage('admin')" id="nav-admin" class="nav-item hover:text-neon-cyan transition">👑 Admin</button>
+        </nav>
+
+        <div class="flex items-center gap-4">
+
+            <div id="wallet-info" class="hidden bg-accent/70 border border-neon-green px-4 py-2 rounded-lg text-sm">
+                <div id="account-display" class="font-mono text-neon-green font-bold"></div>
+                <div id="balance-display" class="text-gray-400 text-xs mt-1"></div>
+            </div>
+
+            <button id="connect-wallet-btn" onclick="connectWallet()" 
+                class="btn-neon bg-gradient-to-r from-neon-blue to-neon-cyan px-6 py-3 rounded-lg font-bold text-card shadow-neon hover:shadow-neon-green transition">
+                Kết Nối Ví
+            </button>
+            
+            <button id="menu-toggle-btn" class="md:hidden text-2xl text-neon-cyan p-2" onclick="toggleMobileMenu()">
+                &#9776; </button>
+        </div>
+    </div>
+    
+    <div id="mobile-menu-drawer" class="md:hidden hidden border-t border-border-glow py-4 px-6 bg-bg-dark/90">
+        <nav class="flex flex-col space-y-3 text-lg">
+            <button onclick="showPage('explore'); toggleMobileMenu()" class="nav-item-mobile text-neon-cyan transition hover:text-neon-cyan text-left w-full p-2 rounded">🌐 Marketplace</button>
+            <button onclick="showPage('mint'); toggleMobileMenu()" class="nav-item-mobile hover:text-neon-cyan transition text-left w-full p-2 rounded">🔨 Mint NFT</button>
+            <button onclick="showPage('profile'); toggleMobileMenu()" class="nav-item-mobile hover:text-neon-cyan transition text-left w-full p-2 rounded">👤 Profile</button>
+            <button onclick="showPage('admin'); toggleMobileMenu()" class="nav-item-mobile hover:text-neon-cyan transition text-left w-full p-2 rounded">👑 Admin</button>
+        </nav>
+    </div>
+</header>
+
+    <main class="max-w-7xl mx-auto px-6 py-10">
+
+        <section id="explore-page" class="page-content">
+            <h2 class="text-4xl font-bold text-neon-pink mb-8 border-b-2 border-neon-pink pb-4 inline-block">🌐 NFT Marketplace</h2>
+            <div id="explore-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                </div>
+            <div class="text-center mt-12">
+                <button id="load-more-btn" onclick="loadMoreNFTs()" class="btn-neon bg-neon-blue px-8 py-4 rounded-lg font-bold text-card shadow-neon hover:shadow-neon-green transition">
+                    Tải thêm
+                </button>
+            </div>
+        </section>
+
+        <section id="mint-page" class="page-content hidden max-w-2xl mx-auto">
+            <h2 class="text-4xl font-bold text-neon-pink mb-8 text-center">🔨 Mint NFT Mới</h2>
+            <form id="mint-form" class="bg-card/70 backdrop-blur border border-border-glow rounded-2xl p-8 shadow-neon">
+                <div class="mb-6">
+                    <label class="block text-neon-cyan mb-2">Tên NFT</label>
+                    <input type="text" id="nft-title" required class="w-full px-5 py-4 bg-accent/50 border border-border-glow rounded-lg focus:border-neon-cyan focus:outline-none transition" placeholder="Ví dụ: Cyber Dragon #001">
+                </div>
+                <div class="mb-8">
+                    <label class="block text-neon-cyan mb-2">Đường dẫn hình ảnh (URL/IPFS)</label>
+                    <input type="url" id="nft-image" required class="w-full px-5 py-4 bg-accent/50 border border-border-glow rounded-lg focus:border-neon-cyan focus:outline-none transition" placeholder="https://ipfs.io/ipfs/...">
+                </div>
+                <button type="submit" class="w-full btn-neon bg-gradient-to-r from-neon-pink to-neon-cyan py-5 rounded-lg font-bold text-card text-xl shadow-neon-pink hover:shadow-neon hover:scale-105 transition">
+                    Mint NFT Ngay
+                </button>
+            </form>
+        </section>
+
+        <section id="profile-page" class="page-content hidden">
+            <h2 class="text-4xl font-bold text-neon-pink mb-8">👤 NFT Của Tôi</h2>
+            <p class="mb-6 text-lg">Địa chỉ ví: <span id="profile-address" class="text-neon-green font-mono font-bold">Chưa kết nối</span></p>
+
+            <div id="return-info" class="hidden bg-accent/70 border border-neon-green p-6 rounded-xl mb-8 flex items-center justify-between">
+                <p>Bạn có <span id="pending-return-amount" class="text-2xl font-bold text-neon-green">0.0</span> ETH có thể rút</p>
+                <button onclick="withdrawPendingReturns()" class="btn-neon bg-neon-green px-6 py-3 rounded-lg font-bold text-card shadow-neon-green hover:scale-105 transition">Rút ETH</button>
+            </div>
+
+            <div id="profile-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"></div>
+        </section>
+
+        <section id="admin-page" class="page-content hidden">
+            <h2 class="text-4xl font-bold text-neon-pink mb-8">👑 Quản Lý Phí</h2>
+            <div class="bg-card/70 backdrop-blur border border-border-glow rounded-2xl p-8 max-w-md mx-auto text-center">
+                <p class="text-lg mb-4">Phí tích lũy: <span id="admin-fees-amount" class="text-3xl font-bold text-neon-pink">0.0</span> ETH</p>
+                <button onclick="withdrawFees()" class="btn-neon bg-gradient-to-r from-neon-pink to-neon-cyan px-10 py-5 rounded-lg font-bold text-card text-xl shadow-neon-pink hover:scale-110 transition">
+                    Rút Tất Cả Phí
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <div id="nftDetailModal" class="fixed inset-0 bg-black/90 backdrop-blur-lg hidden items-center justify-center z-[1000] p-4">
+        <div class="bg-card border border-neon-blue rounded-2xl max-w-5xl w-full max-h-[95vh] overflow-y-auto shadow-2xl animate-fade-in">
+            <div class="sticky top-0 bg-card/90 backdrop-blur border-b border-border-glow p-6 flex justify-between items-center">
+                <h2 id="modalTitle" class="text-3xl font-bold text-neon-pink"></h2>
+                <button onclick="closeModal('nftDetailModal')" class="text-4xl text-gray-400 hover:text-neon-pink transition">&times;</button>
+            </div>
+
+            <div class="p-8 grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <div>
+                    <img id="modalImage" src="" alt="NFT" class="nft-image w-full rounded-xl border-2 border-neon-blue/50 shadow-neon object-cover">
+                </div>
+
+                <div class="flex flex-col justify-between">
+                    <div>
+                        <div class="grid grid-cols-2 gap-4 mb-8 text-lg">
+                            <div><span class="text-gray-400">Token ID:</span> <span id="modalTokenId" class="font-bold text-neon-cyan"></span></div>
+                            <div><span class="text-gray-400">Chủ sở hữu:</span> <span id="modalOwner" class="font-bold text-neon-pink"></span></div>
+                            <div><span class="text-gray-400">Giá bán cuối:</span> <span id="modalLastPrice" class="text-gray-300"></span></div>
+                        </div>
+
+                        <div class="bg-accent/50 border border-border-glow rounded-xl p-6 mb-8">
+                            <div class="flex justify-between items-center mb-3">
+                                <span id="modalStatus" class="tag px-4 py-2 rounded-full text-card font-bold"></span>
+                                <span id="modalTimeRemaining" class="text-neon-cyan font-medium"></span>
+                            </div>
+                            <p id="modalCurrentPrice" class="text-5xl font-extrabold text-neon-green">0.0 ETH</p>
+                        </div>
+
+                        <div id="modalActions" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+                        <div id="modalAuctionDetails" class="mt-8 bg-accent/30 border border-neon-blue/30 rounded-xl p-5 hidden">
+                            <h4 class="text-xl font-bold text-neon-blue mb-4">Chi Tiết Đấu Giá</h4>
+                            <p class="mb-2">Highest Bidder: <span id="modalHighestBidder" class="text-neon-green font-bold"></span></p>
+                            <p>Kết thúc: <span id="modalEndTime" class="text-gray-300"></span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="actionModal" class="fixed inset-0 bg-black/90 backdrop-blur-lg hidden items-center justify-center z-[1001] p-4">
+        <div class="bg-card border border-neon-pink rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-fade-in">
+            <div class="sticky top-0 bg-card/90 backdrop-blur border-b border-border-glow p-6 flex justify-between items-center">
+                <h2 id="actionModalTitle" class="text-3xl font-bold text-neon-cyan"></h2>
+                <button onclick="closeModal('actionModal')" class="text-4xl text-gray-400 hover:text-neon-cyan transition">&times;</button>
+            </div>
+            <div id="actionModalContent" class="p-8">
+                </div>
+        </div>
+    </div>
+    
+    <div id="message-box" class="fixed bottom-8 right-8 px-6 py-4 rounded-lg font-bold text-card shadow-2xl z-[1100] hidden animate-pulse">
+        Notification
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
+<script>
+    // ====================== CẤU HÌNH & HẰNG SỐ ======================
+    const CONTRACT_ADDRESS = "0x206af0d581a4B269BF8D6f4b239d8E1484755aD8";
+    const PUBLIC_RPC_URL = 'https://bsc-dataseed1.binance.org/';
+
+    
+    // *** CẦN THAY THẾ ABI THỰC TẾ CỦA BẠN ***
+    const MARKET_ABI = [
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "approve",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [],
+		"name": "AlreadyListed",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "AuctionEnded",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "AuctionNotEnded",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "BidTooLow",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "CannotBuyOwnToken",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "DurationTooShort",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "ERC721IncorrectOwner",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "ERC721InsufficientApproval",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "approver",
+				"type": "address"
+			}
+		],
+		"name": "ERC721InvalidApprover",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			}
+		],
+		"name": "ERC721InvalidOperator",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "ERC721InvalidOwner",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "receiver",
+				"type": "address"
+			}
+		],
+		"name": "ERC721InvalidReceiver",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			}
+		],
+		"name": "ERC721InvalidSender",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "ERC721NonexistentToken",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "ETHTransferFailed",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "ExactPriceRequired",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "FeeWithdrawalFailed",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "ImageRequired",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InvalidAddress",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "LimitMustBePositive",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "NoFundsAvailable",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "NotApproved",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "NotListedForAuction",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "NotListedForFixedPrice",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "NotOwnerToken",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "OnlyOwnerRequest",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "PageStartFromOne",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "PriceMustBePositive",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "TitleRequired",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "TokenDoesNotExist",
+		"type": "error"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "approved",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "Approval",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "bool",
+				"name": "approved",
+				"type": "bool"
+			}
+		],
+		"name": "ApprovalForAll",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "startPrice",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "duration",
+				"type": "uint256"
+			}
+		],
+		"name": "auctionNFT",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "auctionSettlement",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "bid",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "bidder",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "price",
+				"type": "uint256"
+			}
+		],
+		"name": "BidNewPrice",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "buyNFT",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "buyer",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "price",
+				"type": "uint256"
+			}
+		],
+		"name": "BuySuccessfullToken",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "cancelAuction",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "CancelAuction",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "cancelSale",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "CancelSale",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "startPrice",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "duration",
+				"type": "uint256"
+			}
+		],
+		"name": "ListForAuction",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "price",
+				"type": "uint256"
+			}
+		],
+		"name": "ListForSale",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "title",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "image",
+				"type": "string"
+			}
+		],
+		"name": "mintNewNFT",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "minter",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "MintNFT",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "Received",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "caller",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "RefundPending",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "safeTransferFrom",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "safeTransferFrom",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "price",
+				"type": "uint256"
+			}
+		],
+		"name": "saleNFT",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"internalType": "bool",
+				"name": "approved",
+				"type": "bool"
+			}
+		],
+		"name": "setApprovalForAll",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "caller",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "Settlement",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "Transfer",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "transferFrom",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "WithdrawFees",
+		"type": "event"
+	},
+	{
+		"stateMutability": "payable",
+		"type": "fallback"
+	},
+	{
+		"inputs": [],
+		"name": "withdrawFees",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "withdrawPendingReturns",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"stateMutability": "payable",
+		"type": "receive"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "auctionTokens",
+		"outputs": [
+			{
+				"internalType": "address payable",
+				"name": "highestBidder",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "currentPrice",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "endTime",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "balanceOf",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "FEE_PERCENTAGE",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "getApproved",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getMyTokens",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint256",
+						"name": "id",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "title",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "image",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "price",
+						"type": "uint256"
+					},
+					{
+						"internalType": "enum MarketMedia.SaleType",
+						"name": "saleType",
+						"type": "uint8"
+					},
+					{
+						"internalType": "address",
+						"name": "owner",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "listed",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint256",
+						"name": "priceForSale",
+						"type": "uint256"
+					},
+					{
+						"components": [
+							{
+								"internalType": "address payable",
+								"name": "highestBidder",
+								"type": "address"
+							},
+							{
+								"internalType": "uint256",
+								"name": "currentPrice",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "endTime",
+								"type": "uint256"
+							}
+						],
+						"internalType": "struct MarketMedia.AuctionDetails",
+						"name": "auctionDetails",
+						"type": "tuple"
+					}
+				],
+				"internalType": "struct MarketMedia.TokenView[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getPendingFees",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "getTokenDetail",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint256",
+						"name": "id",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "title",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "image",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "price",
+						"type": "uint256"
+					},
+					{
+						"internalType": "enum MarketMedia.SaleType",
+						"name": "saleType",
+						"type": "uint8"
+					},
+					{
+						"internalType": "address",
+						"name": "owner",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "listed",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint256",
+						"name": "priceForSale",
+						"type": "uint256"
+					},
+					{
+						"components": [
+							{
+								"internalType": "address payable",
+								"name": "highestBidder",
+								"type": "address"
+							},
+							{
+								"internalType": "uint256",
+								"name": "currentPrice",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "endTime",
+								"type": "uint256"
+							}
+						],
+						"internalType": "struct MarketMedia.AuctionDetails",
+						"name": "auctionDetails",
+						"type": "tuple"
+					}
+				],
+				"internalType": "struct MarketMedia.TokenView",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "pageNumber",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint8",
+				"name": "limit",
+				"type": "uint8"
+			}
+		],
+		"name": "getTokenPage",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint256",
+						"name": "id",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "title",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "image",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "price",
+						"type": "uint256"
+					},
+					{
+						"internalType": "enum MarketMedia.SaleType",
+						"name": "saleType",
+						"type": "uint8"
+					},
+					{
+						"internalType": "address",
+						"name": "owner",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "listed",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint256",
+						"name": "priceForSale",
+						"type": "uint256"
+					},
+					{
+						"components": [
+							{
+								"internalType": "address payable",
+								"name": "highestBidder",
+								"type": "address"
+							},
+							{
+								"internalType": "uint256",
+								"name": "currentPrice",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "endTime",
+								"type": "uint256"
+							}
+						],
+						"internalType": "struct MarketMedia.AuctionDetails",
+						"name": "auctionDetails",
+						"type": "tuple"
+					}
+				],
+				"internalType": "struct MarketMedia.TokenView[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_address",
+				"type": "address"
+			}
+		],
+		"name": "getTokensByAddress",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint256",
+						"name": "id",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "title",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "image",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "price",
+						"type": "uint256"
+					},
+					{
+						"internalType": "enum MarketMedia.SaleType",
+						"name": "saleType",
+						"type": "uint8"
+					},
+					{
+						"internalType": "address",
+						"name": "owner",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "listed",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint256",
+						"name": "priceForSale",
+						"type": "uint256"
+					},
+					{
+						"components": [
+							{
+								"internalType": "address payable",
+								"name": "highestBidder",
+								"type": "address"
+							},
+							{
+								"internalType": "uint256",
+								"name": "currentPrice",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "endTime",
+								"type": "uint256"
+							}
+						],
+						"internalType": "struct MarketMedia.AuctionDetails",
+						"name": "auctionDetails",
+						"type": "tuple"
+					}
+				],
+				"internalType": "struct MarketMedia.TokenView[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			}
+		],
+		"name": "isApprovedForAll",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "MIN_AUCTION_DURATION",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "name",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address payable",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "ownerOf",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "pendingReturns",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "salePrices",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes4",
+				"name": "interfaceId",
+				"type": "bytes4"
+			}
+		],
+		"name": "supportsInterface",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "symbol",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "tokens",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "title",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "image",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "price",
+				"type": "uint256"
+			},
+			{
+				"internalType": "enum MarketMedia.SaleType",
+				"name": "saleType",
+				"type": "uint8"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "tokenURI",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+const SALE_TYPE = {
+        NOT_LISTED: 0,
+        FIXED_PRICE: 1,
+        AUCTION: 2
+    };
+
+    // ====================== BIẾN TOÀN CỤC ======================
+    let provider, signer, contract, currentAccount = null, contractOwner = null;
+    let currentNFTsData = []; // Cache dữ liệu NFT
+    let currentModalNFTId = null;
+    let currentPage = 1;
+    const ITEMS_PER_PAGE = 6;
+
+    const toggleMobileMenu = () => {
+    const menu = document.getElementById('mobile-menu-drawer');
+    const toggleBtn = document.getElementById('menu-toggle-btn');
+    
+    // Toggle class 'hidden'
+    menu.classList.toggle('hidden');
+    
+    // Thay đổi biểu tượng
+    if (menu.classList.contains('hidden')) {
+        toggleBtn.innerHTML = '&#9776;'; // Hamburger
+        // Cần đảm bảo rằng chỉ nút Explore có màu active ban đầu
+        document.querySelectorAll('.nav-item-mobile').forEach(btn => btn.classList.remove('text-neon-cyan', 'font-bold'));
+        document.querySelector('.nav-item-mobile').classList.add('text-neon-cyan', 'font-bold');
+    } else {
+        toggleBtn.innerHTML = '&times;'; // Dấu X
+    }
+};
+
+    // ====================== HÀM TIỆN ÍCH ======================
+    const showLoading = (msg = "Đang chờ xác nhận giao dịch Metamask...") => {
+        const overlay = document.getElementById('loading-overlay');
+        overlay.querySelector('p').textContent = msg;
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+    };
+
+    const hideLoading = () => {
+        document.getElementById('loading-overlay').classList.add('hidden');
+        document.getElementById('loading-overlay').classList.remove('flex');
+    };
+
+    const shortenAddress = (addr) => addr ? `${addr.slice(0,6)}...${addr.slice(-4)}` : "N/A";
+
+    const showMessage = (msg, isError = false) => {
+        const box = document.getElementById('message-box');
+        box.textContent = msg;
+        box.className = `fixed bottom-8 right-8 px-6 py-4 rounded-lg font-bold text-card shadow-2xl z-[1100] animate-fade-in ${
+            isError ? 'bg-danger-red' : 'bg-gradient-to-r from-neon-pink to-neon-cyan'
+        }`;
+        box.classList.remove('hidden');
+        setTimeout(() => box.classList.add('hidden'), 5000);
+    };
+
+    const formatEth = (wei, decimals = 4) => {
+        if (!wei) return "0.0";
+        try {
+            let eth = ethers.utils.formatEther(wei);
+            if (eth.includes('.')) {
+                const parts = eth.split('.');
+                // Giới hạn số chữ số thập phân
+                if (parts[1].length > decimals) eth = `${parts[0]}.${parts[1].substring(0, decimals)}`;
+            }
+            // Loại bỏ các số 0 ở cuối
+            return parseFloat(eth).toString();
+        } catch { return "0.0"; }
+    };
+
+    const formatTimeRemaining = (endTime) => {
+        const ms = endTime * 1000 - Date.now();
+        if (ms <= 0) return "Đã kết thúc";
+        const s = Math.floor(ms / 1000);
+        const d = Math.floor(s / 86400);
+        const h = Math.floor((s % 86400) / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        
+        let parts = [];
+        if (d > 0) parts.push(`${d}d`);
+        if (h > 0) parts.push(`${h}h`);
+        if (m > 0 && d === 0) parts.push(`${m}m`);
+        if (sec > 0 && d === 0 && h === 0 && m < 1) parts.push(`${sec}s`);
+        
+        return parts.length > 0 ? parts.join(' ') : 'Vài giây';
+    };
+
+    const closeModal = (id) => {
+        document.getElementById(id).classList.add('hidden');
+        document.getElementById(id).classList.remove('flex');
+        currentModalNFTId = null;
+    };
+
+    // ====================== CÁC HÀM XỬ LÝ DỮ LIỆU/GIAO DỊCH (MOCKUP) ======================
+
+    const updateBalanceDisplay = async () => {
+        if (!currentAccount || !provider) return;
+        try {
+            const balanceWei = await provider.getBalance(currentAccount);
+            document.getElementById('balance-display').textContent = `${formatEth(balanceWei, 4)} ETH`;
+            document.getElementById('profile-address').textContent = shortenAddress(currentAccount);
+        } catch (error) {
+            console.error("Lỗi cập nhật số dư:", error);
+        }
+    };
+
+    const updateOwnerFeesDisplay = async () => {
+        if (!currentAccount) return;
+        try {
+            const readOnly = new ethers.Contract(CONTRACT_ADDRESS, MARKET_ABI, provider);
+            const feesWei = await readOnly.getPendingFees();
+            const feesEth = formatEth(feesWei, 4);
+
+            if (currentAccount.toLowerCase() === contractOwner.toLowerCase()) {
+                document.getElementById('owner-fees').textContent = feesEth;
+                document.getElementById('admin-fees-amount').textContent = feesEth;
+                document.getElementById('fees-display').classList.remove('hidden');
+                document.getElementById('nav-admin').classList.remove('hidden');
+            } else {
+                document.getElementById('fees-display').classList.add('hidden');
+                document.getElementById('nav-admin').classList.add('hidden');
+            }
+        } catch (error) {
+            console.error("Lỗi cập nhật phí chủ sở hữu:", error);
+        }
+    };
+
+    const withdrawFees = async () => {
+        if (!contract) return showMessage("Vui lòng kết nối ví", true);
+        showLoading("Đang rút phí tích lũy...");
+        try {
+            const tx = await contract.withdrawFees();
+            await tx.wait();
+            showMessage("Rút phí thành công!");
+            await updateOwnerFeesDisplay();
+        } catch (error) {
+            showMessage("Lỗi rút phí: " + (error.data?.message || error.message), true);
+        } finally {
+            hideLoading();
+        }
+    };
+
+    const loadNFTsForExplore = async () => {
+        if (!provider) provider = new ethers.providers.Web3Provider(window.ethereum || null);
+        try {
+            const readOnly = new ethers.Contract(CONTRACT_ADDRESS, MARKET_ABI, provider);
+            const allTokens = await readOnly.getTokenPage(currentPage, ITEMS_PER_PAGE);
+            currentNFTsData = allTokens; // Cache dữ liệu
+            renderNFTs(allTokens, 'explore-grid', false);
+        } catch (error) {
+            console.error("Lỗi tải NFT Explore:", error);
+            document.getElementById('explore-grid').innerHTML = '<p class="col-span-full text-center text-red-500 py-20 text-xl">Không thể tải dữ liệu Marketplace. Vui lòng kiểm tra kết nối mạng và ABI.</p>';
+        }
+    };
+
+    const loadNFTsForProfile = async () => {
+        if (!contract) return showMessage("Vui lòng kết nối ví để xem Profile", true);
+        try {
+            const myTokens = await contract.getTokensByAddress(currentAccount);
+            // Cập nhật cache (có thể merge với allTokens nếu cần, nhưng tạm thời chỉ dùng myTokens)
+            console.log("My Tokens:", myTokens);
+            currentNFTsData = myTokens; 
+            renderNFTs(myTokens, 'profile-grid', true);
+            await updatePendingReturnsDisplay();
+        } catch (error) {
+            console.error("Lỗi tải NFT Profile:", error);
+            document.getElementById('profile-grid').innerHTML = '<p class="col-span-full text-center text-red-500 py-20 text-xl">Lỗi tải NFT của bạn. (Có thể bạn chưa mint token nào.)</p>';
+        }
+    };
+
+    const updatePendingReturnsDisplay = async () => {
+        if (!currentAccount || !provider) return;
+        try {
+            const readOnly = new ethers.Contract(CONTRACT_ADDRESS, MARKET_ABI, provider);
+            const returnsWei = await readOnly.pendingReturns(currentAccount);
+            const returnsEth = formatEth(returnsWei, 4);
+
+            if (returnsEth > 0) {
+                document.getElementById('pending-return-amount').textContent = returnsEth;
+                document.getElementById('return-info').classList.remove('hidden');
+            } else {
+                document.getElementById('return-info').classList.add('hidden');
+            }
+        } catch (error) {
+            console.error("Lỗi cập nhật lợi nhuận chờ rút:", error);
+        }
+    };
+    
+    // *** CÁC HÀM GIAO DỊCH KHÁC (CẦN TỰ THÊM LOGIC) ***
+    // function showBuyModal(tokenId, price) { /* ... */ }
+    // function showBidModal(tokenId) { /* ... */ }
+    // function showCancelSaleModal(tokenId) { /* ... */ }
+    // function showSellFixedModal(tokenId) { /* ... */ }
+    // function showSellAuctionModal(tokenId) { /* ... */ }
+    // function showSettlementModal(tokenId) { /* ... */ }
+
+    // ====================== HÀM HIỂN THỊ MODAL HÀNH ĐỘNG ĐA NĂNG ======================
+
+const renderActionModal = (title, contentHTML) => {
+    const modal = document.getElementById('actionModal');
+    if (!modal) return showMessage("Lỗi cấu hình Modal.", true);
+
+    document.getElementById('actionModalTitle').textContent = title;
+    document.getElementById('actionModalContent').innerHTML = contentHTML;
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+};
+
+// ====================== CÁC HÀM GIAO DỊCH (ĐƯỢC TRIỂN KHAI) ======================
+
+const showBuyModal = (tokenId, price) => {
+    if (!contract) return showMessage("Vui lòng kết nối ví để mua", true);
+
+    const contentHTML = `
+        <p class="text-lg mb-6">Bạn đang chuẩn bị mua NFT Token ID: <span class="font-bold text-neon-pink">${tokenId}</span>.</p>
+        <p class="text-3xl font-extrabold text-neon-green mb-8">Giá: ${price} ETH</p>
+        
+        <button onclick="handleBuyNFT(${tokenId}, '${price}')" 
+            class="w-full btn-neon bg-gradient-to-r from-neon-green to-neon-cyan py-4 rounded-lg font-bold text-card text-xl shadow-neon-green hover:scale-105 transition">
+            Xác nhận Mua
+        </button>
+    `;
+
+    renderActionModal(`MUA NFT`, contentHTML);
+};
+
+const handleBuyNFT = async (tokenId, priceEth) => {
+    closeModal('actionModal');
+    showLoading("Đang mua NFT...");
+    
+    try {
+        const priceWei = ethers.utils.parseEther(priceEth);
+        // GIẢ ĐỊNH hàm mua trong contract là buyNFT, cần gửi kèm value (giá trị ETH)
+        const tx = await contract.buyNFT(tokenId, { value: priceWei });
+        await tx.wait();
+        showMessage(`Mua Token ID ${tokenId} thành công!`);
+        // Tải lại dữ liệu sau giao dịch
+        await loadNFTsForExplore(); 
+    } catch (error) {
+        showMessage("Lỗi mua NFT: " + (error.data?.message || error.message || error.reason), true);
+    } finally {
+        hideLoading();
+    }
+};
+
+const showBidModal = (tokenId) => {
+    if (!contract) return showMessage("Vui lòng kết nối ví để đặt Bid", true);
+    
+    // Lấy thông tin NFT để kiểm tra giá tối thiểu nếu cần
+    const nft = currentNFTsData.find(n => n[0].toString() === tokenId.toString());
+    const minBid = nft ? formatEth(nft[8][1], 4) : '0.0'; // nft[8][1] là currentBid
+    
+    const contentHTML = `
+        <p class="text-lg mb-4">Token ID: <span class="font-bold text-neon-pink">${tokenId}</span></p>
+        <p class="text-md text-gray-400 mb-6">Giá bid hiện tại: ${minBid} ETH</p>
+        
+        <form id="bid-form">
+            <label class="block text-neon-cyan mb-2">Số ETH muốn Bid</label>
+            <input type="number" step="0.0001" min="${minBid}" id="bid-amount" required 
+                class="w-full px-5 py-4 bg-accent/50 border border-border-glow rounded-lg focus:border-neon-cyan focus:outline-none transition" 
+                placeholder="Ví dụ: ${parseFloat(minBid) + 0.01}">
+            
+            <button type="submit" 
+                class="w-full btn-neon bg-gradient-to-r from-neon-blue to-neon-cyan py-4 rounded-lg font-bold text-card text-xl mt-6 shadow-neon hover:scale-105 transition">
+                Xác nhận Đặt Bid
+            </button>
+        </form>
+    `;
+
+    renderActionModal(`ĐẶT BID Đấu Giá`, contentHTML);
+
+    document.getElementById('bid-form').onsubmit = (e) => {
+        e.preventDefault();
+        const bidAmount = document.getElementById('bid-amount').value;
+        handlePlaceBid(tokenId, bidAmount);
+    };
+};
+
+const handlePlaceBid = async (tokenId, bidAmountEth) => {
+    closeModal('actionModal');
+    showLoading("Đang gửi Bid...");
+    
+    try {
+        const bidAmountWei = ethers.utils.parseEther(bidAmountEth);
+        // GIẢ ĐỊNH hàm đặt bid trong contract là placeBid, cần gửi kèm value
+        const tx = await contract.bid(tokenId, { value: bidAmountWei });
+        await tx.wait();
+        showMessage(`Đặt Bid ${bidAmountEth} ETH cho Token ID ${tokenId} thành công!`);
+        await loadNFTsForExplore();
+    } catch (error) {
+        showMessage("Lỗi đặt Bid: " + (error.data?.message || error.message || error.reason), true);
+    } finally {
+        hideLoading();
+    }
+};
+
+const showSellFixedModal = (tokenId) => {
+    if (!contract) return showMessage("Vui lòng kết nối ví để niêm yết", true);
+
+    const contentHTML = `
+        <p class="text-lg mb-6">Niêm yết Token ID: <span class="font-bold text-neon-pink">${tokenId}</span> với giá cố định.</p>
+        <form id="fixed-sale-form">
+            <label class="block text-neon-cyan mb-2">Giá Bán (ETH)</label>
+            <input type="number" step="0.0001" min="0.0001" id="sale-price" required 
+                class="w-full px-5 py-4 bg-accent/50 border border-border-glow rounded-lg focus:border-neon-cyan focus:outline-none transition" 
+                placeholder="Ví dụ: 0.5">
+            
+            <button type="submit" 
+                class="w-full btn-neon bg-gradient-to-r from-neon-green to-neon-pink py-4 rounded-lg font-bold text-card text-xl mt-6 shadow-neon-green hover:scale-105 transition">
+                Niêm Yết Fixed Price
+            </button>
+        </form>
+    `;
+
+    renderActionModal(`NIÊM YẾT BÁN CỐ ĐỊNH`, contentHTML);
+
+    document.getElementById('fixed-sale-form').onsubmit = (e) => {
+        e.preventDefault();
+        const price = document.getElementById('sale-price').value;
+        handleListFixedPrice(tokenId, price);
+    };
+};
+
+const handleListFixedPrice = async (tokenId, priceEth) => {
+    closeModal('actionModal');
+    showLoading("Đang niêm yết NFT...");
+    
+    try {
+        const priceWei = ethers.utils.parseEther(priceEth);
+        // GIẢ ĐỊNH hàm niêm yết là listFixedPrice
+        const tx = await contract.saleNFT(tokenId, priceWei);
+        await tx.wait();
+        showMessage(`Niêm yết Token ID ${tokenId} với giá ${priceEth} ETH thành công!`);
+        await loadNFTsForProfile();
+        showPage('explore'); // Chuyển về trang explore để thấy NFT
+    } catch (error) {
+        showMessage("Lỗi niêm yết: " + (error.data?.message || error.message || error.reason), true);
+    } finally {
+        hideLoading();
+    }
+};
+
+const showSellAuctionModal = (tokenId) => {
+    if (!contract) return showMessage("Vui lòng kết nối ví để đấu giá", true);
+
+    const contentHTML = `
+        <p class="text-lg mb-6">Bắt đầu đấu giá Token ID: <span class="font-bold text-neon-pink">${tokenId}</span></p>
+        <form id="auction-sale-form" class="space-y-4">
+            <div>
+                <label class="block text-neon-cyan mb-2">Giá Khởi Điểm (ETH)</label>
+                <input type="number" step="0.0001" min="0.0001" id="auction-start-price" required 
+                    class="w-full px-5 py-4 bg-accent/50 border border-border-glow rounded-lg focus:border-neon-cyan focus:outline-none transition" 
+                    placeholder="Ví dụ: 0.1">
+            </div>
+            <div>
+                <label class="block text-neon-cyan mb-2">Thời Gian Đấu Giá (Ngày)</label>
+                <input type="number" min="1" max="30" id="auction-duration-days" required 
+                    class="w-full px-5 py-4 bg-accent/50 border border-border-glow rounded-lg focus:border-neon-cyan focus:outline-none transition" 
+                    placeholder="Ví dụ: 7">
+            </div>
+            
+            <button type="submit" 
+                class="w-full btn-neon bg-gradient-to-r from-neon-blue to-neon-pink py-4 rounded-lg font-bold text-card text-xl mt-6 shadow-neon-blue hover:scale-105 transition">
+                Bắt Đầu Đấu Giá
+            </button>
+        </form>
+    `;
+
+    renderActionModal(`BẮT ĐẦU ĐẤU GIÁ`, contentHTML);
+
+    document.getElementById('auction-sale-form').onsubmit = (e) => {
+        e.preventDefault();
+        const startPrice = document.getElementById('auction-start-price').value;
+        const durationDays = document.getElementById('auction-duration-days').value;
+        handleListAuction(tokenId, startPrice, durationDays);
+    };
+};
+
+const handleListAuction = async (tokenId, startPriceEth, durationDays) => {
+    closeModal('actionModal');
+    showLoading("Đang tạo phiên đấu giá...");
+    
+    try {
+        const startPriceWei = ethers.utils.parseEther(startPriceEth);
+        // Chuyển đổi ngày thành giây (1 ngày = 86400 giây)
+        const durationSeconds = durationDays * 86400; 
+        
+        // GIẢ ĐỊNH hàm niêm yết là listAuction
+        const tx = await contract.auctionNFT(tokenId, startPriceWei, durationSeconds);
+        await tx.wait();
+        showMessage(`Tạo đấu giá Token ID ${tokenId} thành công, kéo dài ${durationDays} ngày!`);
+        await loadNFTsForProfile();
+        showPage('explore'); 
+    } catch (error) {
+        showMessage("Lỗi tạo đấu giá: " + (error.data?.message || error.message || error.reason), true);
+    } finally {
+        hideLoading();
+    }
+};
+
+
+const showCancelSaleModal = (tokenId) => {
+    if (!contract) return showMessage("Vui lòng kết nối ví", true);
+
+    const contentHTML = `
+        <p class="text-xl mb-8 text-center text-danger-red font-bold">Bạn có chắc chắn muốn HỦY niêm yết Token ID: ${tokenId}?</p>
+        <p class="text-md mb-6 text-gray-400 text-center">NFT sẽ không còn hiển thị trên Marketplace.</p>
+        
+        <button onclick="handleCancelSale(${tokenId})" 
+            class="w-full btn-neon bg-danger-red py-4 rounded-lg font-bold text-card text-xl shadow-danger-red hover:scale-105 transition">
+            Xác nhận HỦY BÁN
+        </button>
+    `;
+
+    renderActionModal(`HỦY NIÊM YẾT`, contentHTML);
+};
+
+const handleCancelSale = async (tokenId) => {
+    closeModal('actionModal');
+    showLoading("Đang hủy niêm yết...");
+    
+    try {
+        // GIẢ ĐỊNH hàm hủy là cancelSale
+        const tx = await contract.cancelSale(tokenId);
+        await tx.wait();
+        showMessage(`Hủy niêm yết Token ID ${tokenId} thành công!`);
+        await loadNFTsForProfile();
+    } catch (error) {
+        showMessage("Lỗi hủy niêm yết: " + (error.data?.message || error.message || error.reason), true);
+    } finally {
+        hideLoading();
+    }
+};
+
+const showSettlementModal = (tokenId) => {
+    if (!contract) return showMessage("Vui lòng kết nối ví", true);
+
+    const contentHTML = `
+        <p class="text-xl mb-8 text-center text-neon-pink font-bold">Hoàn tất giao dịch đấu giá (Settlement) cho Token ID: ${tokenId}</p>
+        <p class="text-md mb-6 text-gray-400 text-center">Hành động này sẽ chuyển NFT cho người trả giá cao nhất và chuyển ETH cho chủ sở hữu.</p>
+        
+        <button onclick="handleSettlement(${tokenId})" 
+            class="w-full btn-neon bg-neon-pink py-4 rounded-lg font-bold text-card text-xl shadow-neon-pink hover:scale-105 transition">
+            Xác nhận Settlement
+        </button>
+    `;
+
+    renderActionModal(`SETTLEMENT Đấu Giá`, contentHTML);
+};
+
+const handleSettlement = async (tokenId) => {
+    closeModal('actionModal');
+    showLoading("Đang hoàn tất đấu giá...");
+    
+    try {
+        // GIẢ ĐỊNH hàm hoàn tất đấu giá là settleAuction
+        const tx = await contract.auctionSettlement(tokenId);
+        await tx.wait();
+        showMessage(`Settlement Token ID ${tokenId} thành công!`);
+        await loadNFTsForProfile(); // Cập nhật Profile (chủ sở hữu cũ mất NFT)
+        await loadNFTsForExplore(); // Cập nhật Explore (NFT không còn đấu giá)
+    } catch (error) {
+        showMessage("Lỗi Settlement: " + (error.data?.message || error.message || error.reason), true);
+    } finally {
+        hideLoading();
+    }
+};
+
+const withdrawPendingReturns = async () => {
+    if (!contract) return showMessage("Vui lòng kết nối ví", true);
+    showLoading("Đang rút ETH...");
+    try {
+        // GIẢ ĐỊNH hàm rút ETH cho người bán và người đặt bid thua là withdraw
+        const tx = await contract.withdrawPendingReturns();
+        await tx.wait();
+        showMessage("Rút ETH thành công!");
+        await updatePendingReturnsDisplay();
+        await updateBalanceDisplay();
+    } catch (error) {
+        showMessage("Lỗi rút ETH: " + (error.data?.message || error.message || error.reason), true);
+    } finally {
+        hideLoading();
+    }
+};
+
+
+    // ====================== CHUYỂN TRANG & RENDER ======================
+
+    const showPage = (pageId) => {
+        document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
+        document.getElementById(`${pageId}-page`).classList.remove('hidden');
+        
+        document.querySelectorAll('.nav-item').forEach(btn => {
+            btn.classList.remove('text-neon-cyan', 'font-bold', 'border-b-2', 'border-neon-cyan');
+            btn.classList.add('text-white/70');
+        });
+        const activeNav = document.getElementById(`nav-${pageId}`);
+        if(activeNav) {
+            activeNav.classList.add('text-neon-cyan', 'font-bold');
+            activeNav.classList.remove('text-white/70');
+        }
+
+        if (pageId === 'explore') {
+            loadNFTsForExplore();
+        } else if (pageId === 'profile') {
+            if (currentAccount) loadNFTsForProfile();
+            else document.getElementById('profile-grid').innerHTML = '<p class="col-span-full text-center text-gray-500 py-20 text-xl">Vui lòng kết nối ví để xem NFT của bạn.</p>';
+        } else if (pageId === 'admin') {
+            if (currentAccount && contractOwner && currentAccount.toLowerCase() === contractOwner.toLowerCase()) updateOwnerFeesDisplay();
+            else showPage('explore'); // Chặn truy cập nếu không phải owner
+        }
+    };
+
+
+    const createNFTCard = (nft, isProfile = false) => {
+        // Cấu trúc token: [tokenId, title, image, lastSoldPriceWei, saleType, ownerAddress, listed, priceForSaleWei, auctionDetails]
+        const [
+            tokenId, title, image, lastSoldPriceWei, saleType,
+            ownerAddress, , priceForSaleWei, auctionDetails
+        ] = nft;
+
+        const tokenIdStr = tokenId.toString();
+        const isMyNFT = currentAccount && ownerAddress.toLowerCase() === currentAccount.toLowerCase();
+
+        let priceDisplay = '', priceColor = '', statusTag = '', actionButtons = '';
+
+        // --- Logic Hiển Thị Giá & Trạng thái ---
+        if (saleType === SALE_TYPE.FIXED_PRICE) {
+            const priceEth = formatEth(priceForSaleWei, 4);
+            priceDisplay = `${priceEth} ETH`;
+            priceColor = 'text-neon-green';
+            statusTag = '<span class="tag px-3 py-1 rounded-full bg-neon-green text-card text-xs font-bold">Fixed Price</span>';
+
+            if (!isMyNFT && currentAccount) {
+                actionButtons = `<button class="btn-neon bg-neon-green w-full py-3 rounded-lg font-bold text-card hover:scale-[1.03] transition" onclick="showBuyModal(${tokenIdStr}, '${priceEth}')">MUA NGAY</button>`;
+            } else if (isMyNFT && isProfile) {
+                actionButtons = `<button class="btn-neon bg-danger-red w-full py-3 rounded-lg font-bold text-card hover:scale-[1.03] transition" onclick="showCancelSaleModal(${tokenIdStr})">HỦY BÁN</button>`;
+            }
+
+        } else if (saleType === SALE_TYPE.AUCTION) {
+            const currentBid = formatEth(auctionDetails[1], 4);
+            const endTime = auctionDetails[2].toNumber();
+            const isEnded = endTime <= Date.now() / 1000;
+
+            priceDisplay = `${currentBid} ETH`;
+            priceColor = isEnded ? 'text-danger-red' : 'text-neon-blue';
+
+            if (isEnded) {
+                statusTag = '<span class="tag px-3 py-1 rounded-full bg-danger-red text-card text-xs font-bold">Đã Kết Thúc</span>';
+                if (isMyNFT && auctionDetails[0] !== ethers.constants.AddressZero) {
+                    actionButtons = `<button class="btn-neon bg-neon-pink w-full py-3 rounded-lg font-bold text-card hover:scale-[1.03] transition" onclick="event.stopPropagation(); showSettlementModal(${tokenIdStr})">SETTLEMENT</button>`;
+                }
+            } else {
+                statusTag = `<span class="tag px-3 py-1 rounded-full bg-neon-blue text-card text-xs font-bold">Auction</span>
+                              <span class="text-neon-cyan text-sm ml-2">${formatTimeRemaining(endTime)}</span>`;
+                if (!isMyNFT && currentAccount) {
+                    actionButtons = `<button class="btn-neon bg-neon-blue w-full py-3 rounded-lg font-bold text-card hover:scale-[1.03] transition" onclick="event.stopPropagation(); showBidModal(${tokenIdStr})">ĐẶT BID</button>`;
+                }
+            }
+
+        } else { // NOT LISTED
+            const lastPrice = formatEth(lastSoldPriceWei, 4);
+            priceDisplay = lastPrice === '0' ? 'Chưa mở bán' : `${lastPrice} ETH`;
+            priceColor = 'text-gray-400';
+            statusTag = '<span class="tag px-3 py-1 rounded-full bg-gray-600 text-white text-xs font-bold">Not Listed</span>';
+
+            if (isMyNFT && isProfile) {
+                actionButtons = `
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="btn-neon bg-neon-green text-card py-3 rounded-lg font-bold hover:scale-[1.03] transition" onclick="event.stopPropagation(); showSellFixedModal(${tokenIdStr})">Fixed</button>
+                        <button class="btn-neon bg-neon-blue text-card py-3 rounded-lg font-bold hover:scale-[1.03] transition" onclick="event.stopPropagation(); showSellAuctionModal(${tokenIdStr})">Auction</button>
+                    </div>`;
+            }
+        }
+
+        return `
+            <div class="nft-card bg-card border border-border-glow rounded-2xl overflow-hidden shadow-card cursor-pointer transform transition-all duration-500 hover:shadow-neon"
+                    onclick="showNFTDetailsModal('${tokenIdStr}')">
+                <img src="${image}" alt="${title}" class="nft-image w-full h-64 object-cover border-b border-border-glow">
+                <div class="p-6 flex flex-col justify-between h-auto">
+                    <div>
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-bold text-neon-pink truncate">${title}</h3>
+                            <span class="text-xs text-gray-500">ID: ${tokenIdStr}</span>
+                        </div>
+                        <p class="text-sm text-gray-400 mb-3">
+                            Owner: <span class="${isMyNFT ? 'text-neon-pink font-bold' : 'text-gray-300'}">${isMyNFT ? 'Bạn' : shortenAddress(ownerAddress)}</span>
+                        </p>
+                        <div class="mb-4">${statusTag}</div>
+                        <p class="text-3xl font-extrabold ${priceColor} mb-6">${priceDisplay}</p>
+                    </div>
+                    <div>${actionButtons}</div>
+                </div>
+            </div>`;
+    };
+
+    const renderNFTs = (nfts, gridId, isProfile = false) => {
+        const grid = document.getElementById(gridId);
+        grid.innerHTML = ''; // Xóa nội dung cũ
+
+        const filtered =  nfts;
+
+        if (filtered.length === 0) {
+            grid.innerHTML = `<p class="col-span-full text-center text-gray-500 py-20 text-xl">
+                ${isProfile ? 'Bạn chưa sở hữu NFT nào.' : 'Marketplace hiện chưa có NFT nào được niêm yết.'}
+            </p>`;
+            return;
+        }
+
+        grid.innerHTML = filtered.map(nft => createNFTCard(nft, isProfile)).join('');
+    };
+
+    // ====================== MODAL CHI TIẾT NFT ======================
+    const showNFTDetailsModal = async (tokenId) => {
+        const nft = currentNFTsData.find(n => n[0].toString() === tokenId);
+        if (!nft) return showMessage("Không tìm thấy NFT này", true);
+
+        const [tokenIdBN, title, image, lastSoldPriceWei, saleType, ownerAddress, , priceForSaleWei, auctionDetails] = nft;
+        const isMyNFT = currentAccount && ownerAddress.toLowerCase() === currentAccount.toLowerCase();
+        
+        // Cập nhật các element cơ bản
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalImage').src = image;
+        document.getElementById('modalTokenId').textContent = tokenId;
+        document.getElementById('modalOwner').textContent = isMyNFT ? 'Bạn' : shortenAddress(ownerAddress);
+        document.getElementById('modalLastPrice').textContent = formatEth(lastSoldPriceWei, 4) + ' ETH';
+
+        let statusEl = document.getElementById('modalStatus');
+        let priceEl = document.getElementById('modalCurrentPrice');
+        let actionsDiv = document.getElementById('modalActions');
+        let auctionDiv = document.getElementById('modalAuctionDetails');
+        document.getElementById('modalTimeRemaining').textContent = '';
+
+        // --- Logic Hiển Thị Giá & Trạng thái Modal ---
+        if (saleType === SALE_TYPE.FIXED_PRICE) {
+            const price = formatEth(priceForSaleWei, 4);
+            priceEl.textContent = `${price} ETH`;
+            priceEl.className = 'text-5xl font-extrabold text-neon-green';
+            statusEl.textContent = 'Fixed Price';
+            statusEl.className = 'tag px-4 py-2 rounded-full bg-neon-green text-card font-bold';
+            auctionDiv.classList.add('hidden');
+
+            actionsDiv.innerHTML = !isMyNFT && currentAccount
+                ? `<button class="btn-neon bg-neon-green w-full py-4 rounded-lg font-bold text-card text-xl shadow-neon-green hover:scale-105 transition" onclick="showBuyModal(${tokenId}, '${price}')">MUA NGAY</button>`
+                : isMyNFT
+                    ? `<button class="btn-neon bg-danger-red w-full py-4 rounded-lg font-bold text-card text-xl hover:scale-105 transition" onclick="showCancelSaleModal(${tokenId})">HỦY BÁN</button>`
+                    : `<button class="btn-neon bg-gray-600 w-full py-4 rounded-lg font-bold text-white cursor-not-allowed">Không có hành động</button>`;
+
+        } else if (saleType === SALE_TYPE.AUCTION) {
+            const bid = formatEth(auctionDetails[1], 4);
+            const endTime = auctionDetails[2].toNumber();
+            const ended = endTime <= Date.now() / 1000;
+            const highestBidder = auctionDetails[0];
+
+            priceEl.textContent = `${bid} ETH`;
+            priceEl.className = ended ? 'text-5xl font-extrabold text-danger-red' : 'text-5xl font-extrabold text-neon-blue';
+            statusEl.textContent = ended ? 'Đã Kết Thúc' : 'Auction Live';
+            statusEl.className = ended ? 'tag px-4 py-2 rounded-full bg-danger-red text-card font-bold' : 'tag px-4 py-2 rounded-full bg-neon-blue text-card font-bold';
+
+            document.getElementById('modalHighestBidder').textContent = shortenAddress(highestBidder);
+            document.getElementById('modalEndTime').textContent = new Date(endTime * 1000).toLocaleString();
+            document.getElementById('modalTimeRemaining').textContent = ended ? '' : ` (${formatTimeRemaining(endTime)})`;
+            auctionDiv.classList.remove('hidden');
+
+            if (!ended && !isMyNFT && currentAccount) {
+                actionsDiv.innerHTML = `<button class="btn-neon bg-neon-blue w-full py-4 rounded-lg font-bold text-card text-xl shadow-neon hover:scale-105 transition" onclick="showBidModal(${tokenId})">ĐẶT BID</button>`;
+            } else if (ended && isMyNFT && highestBidder !== ethers.constants.AddressZero) {
+                actionsDiv.innerHTML = `<button class="btn-neon bg-neon-pink w-full py-4 rounded-lg font-bold text-card text-xl shadow-neon-pink hover:scale-105 transition" onclick="showSettlementModal(${tokenId})">SETTLEMENT</button>`;
+            } else {
+                actionsDiv.innerHTML = `<button class="btn-neon bg-gray-600 w-full py-4 rounded-lg font-bold text-white cursor-not-allowed">${ended ? 'Đã Kết Thúc' : 'Đang Đấu Giá'}</button>`;
+            }
+
+        } else { // NOT_LISTED
+            const last = formatEth(lastSoldPriceWei, 4);
+            priceEl.textContent = last === '0' ? 'Chưa mở bán' : `${last} ETH`;
+            priceEl.className = 'text-5xl font-extrabold text-gray-400';
+            statusEl.textContent = 'Not Listed';
+            statusEl.className = 'tag px-4 py-2 rounded-full bg-gray-600 text-white font-bold';
+            auctionDiv.classList.add('hidden');
+
+            actionsDiv.innerHTML = isMyNFT
+                ? `<div class="grid grid-cols-2 gap-4">
+                        <button class="btn-neon bg-neon-green text-card py-4 rounded-lg font-bold text-xl hover:scale-105 transition" onclick="showSellFixedModal(${tokenId})">Fixed Price</button>
+                        <button class="btn-neon bg-neon-blue text-card py-4 rounded-lg font-bold text-xl hover:scale-105 transition" onclick="showSellAuctionModal(${tokenId})">Auction</button>
+                    </div>`
+                : `<button class="btn-neon bg-gray-600 w-full py-4 rounded-lg font-bold text-white cursor-not-allowed">Không có hành động</button>`;
+        }
+
+        // Hiển thị Modal
+        document.getElementById('nftDetailModal').classList.remove('hidden');
+        document.getElementById('nftDetailModal').classList.add('flex');
+    };
+
+
+    // ====================== KẾT NỐI VÍ ======================
+    const connectWallet = async () => {
+        if (!window.ethereum) return showMessage("Cần cài Metamask!", true);
+
+        try {
+            const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+            currentAccount = accounts[0];
+
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            signer = provider.getSigner();
+            contract = new ethers.Contract(CONTRACT_ADDRESS, MARKET_ABI, signer);
+
+            const readOnly = new ethers.Contract(CONTRACT_ADDRESS, MARKET_ABI, provider);
+            contractOwner = await readOnly.owner();
+
+            document.getElementById('connect-wallet-btn').classList.add('hidden');
+            document.getElementById('wallet-info').classList.remove('hidden');
+            document.getElementById('account-display').textContent = shortenAddress(currentAccount);
+
+            await updateBalanceDisplay();
+            await updateOwnerFeesDisplay();
+            showMessage("Kết nối ví thành công!");
+
+            // Chuyển sang trang đang active, hoặc Explore nếu lần đầu
+            const activeNavElement = document.querySelector('.nav-item.text-neon-cyan');
+            const activePage = activeNavElement ? activeNavElement.id.replace('nav-', '') : 'explore';
+            showPage(activePage);
+
+        } catch (err) {
+            showMessage("Kết nối thất bại: " + (err.message || "Kết nối bị từ chối."), true);
+        }
+    };
+
+    const toggleWalletConnection = () => currentAccount ? (() => {
+        currentAccount = null; contract = null;
+        document.getElementById('connect-wallet-btn').classList.remove('hidden');
+        document.getElementById('wallet-info').classList.add('hidden');
+        document.getElementById('fees-display').classList.add('hidden');
+        showMessage("Đã ngắt kết nối ví");
+        showPage('explore');
+    })() : connectWallet();
+
+    // ====================== KHỞI TẠO ======================
+    document.addEventListener('DOMContentLoaded', () => {
+        // Tự động kết nối lại nếu Metamask đã kết nối trước đó
+        if (window.ethereum && window.ethereum.selectedAddress) {
+             connectWallet();
+        } else {
+             showPage('explore');
+        }
+
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', accounts => accounts.length ? connectWallet() : toggleWalletConnection());
+            window.ethereum.on('chainChanged', () => location.reload());
+        }
+        
+        // Gắn listener cho Mint form
+        document.getElementById('mint-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!contract) return showMessage("Vui lòng kết nối ví để Mint", true);
+            
+            const title = document.getElementById('nft-title').value;
+            const image = document.getElementById('nft-image').value;
+            
+            showLoading("Đang Mint NFT...");
+            try {
+                const tx = await contract.mintNewNFT(title, image);
+                await tx.wait();
+                showMessage(`Mint NFT "${title}" thành công!`);
+                document.getElementById('mint-form').reset();
+            } catch (error) {
+                showMessage("Lỗi Mint NFT: " + (error.data?.message || error.message), true);
+            } finally {
+                hideLoading();
+            }
+        });
+    });
+
+</script>
+</body>
+</html>

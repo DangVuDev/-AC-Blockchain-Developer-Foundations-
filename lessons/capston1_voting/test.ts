@@ -259,20 +259,23 @@ async function main() {
 	}
 ];
 
-  const contractAddress = "0xD53500a6d37BBC4b3A4d6D12907e076DDBd4a46C"; // Replace with your contract address
+  const contractAddress = "0x7764a1a2FAC44bcf83aC0916C36cd959457b31Ce"; // Replace with your contract address
   const contract = new ethers.Contract(contractAddress, abi, signer);
 
 
-//   const [winnerName, highestVotes] = await contract.winner();
+    const [winnerName, highestVotes] = await contract.winner();
 
-//   console.log("Người chiến thắng:", winnerName);
-//   console.log("Số phiếu cao nhất:", highestVotes.toString());
+  console.log("Người chiến thắng:", winnerName);
+  console.log("Số phiếu cao nhất:", highestVotes.toString());
 
-    // const candidate =  await contract.getCandidate(0);
-    // const [name, voteCount] = candidate;
+    const candidate =  await contract.getCandidate(0);
+    const [name, voteCount] = candidate;
 
-    // console.log("user: ", name);
-    // console.log("vote: ", voteCount.toString());
+    console.log("user: ", name);
+    console.log("vote: ", voteCount.toString());
+
+	// const voteTx = await contract.vote(1);
+	// await voteTx.wait();
 
 }
 
