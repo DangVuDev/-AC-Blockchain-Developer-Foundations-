@@ -207,8 +207,7 @@ contract CycloneERC721Token is ERC721, Ownable {
     IERC20 public immutable cycloneERC20Token;
     mapping(uint256 => uint256) public depositValue;
     
-    // MAPPING MỚI: Theo dõi NFT nào đang được thế chấp
-    // tokenId => địa chỉ Lending Pool đang nắm quyền thế chấp (address(0) nếu không thế chấp)
+ 
     mapping(uint256 => address) public collateralApprover;
 
     // EVENTS
@@ -227,7 +226,7 @@ contract CycloneERC721Token is ERC721, Ownable {
         cycloneERC20Token = IERC20(_token);
     }
     
-    // --- CHỨC NĂNG NGƯỜI DÙNG: GỬI TIỀN / MINT NFT (Giữ nguyên) ---
+    // --- CHỨC NĂNG NGƯỜI DÙNG
     function mintCollateral(uint256 amount) external returns (uint256) {
         require(amount > 0, "Amount must be greater than zero");
 
@@ -243,12 +242,7 @@ contract CycloneERC721Token is ERC721, Ownable {
         return newId;
     }
 
-    // --- OVERRIDE APPROVE VÀ SET APPROVAL FOR ALL ---
-
-    /**
-     * @notice Chỉ cho phép cấp phép (approve) nếu NFT không đang được thế chấp.
-     * @dev Ghi lại Pool được cấp phép vào `collateralApprover` nếu đó là Pool cho vay.
-     */
+    
     function approve(address to, uint256 tokenId) public override {
         require(collateralApprover[tokenId] == address(0), "Cannot change approval while NFT is collateralized");
         super.approve(to, tokenId);
@@ -285,7 +279,7 @@ contract CycloneERC721Token is ERC721, Ownable {
         emit CollateralUnLockApproved(tokenId, msg.sender);
     }
     
-    // --- CHỨC NĂNG NGƯỜI DÙNG: RÚT TIỀN / BURN NFT ---
+    // --- CHỨC NĂNG NGƯỜI DÙNG
 
 
     function withdrawCollateral(uint256 tokenId) external {
@@ -313,7 +307,7 @@ contract CycloneERC721Token is ERC721, Ownable {
         emit CollateralWithdrawn(msg.sender, tokenId, value);
     }
     
-    // --- HÀM VIEW (Giữ nguyên) ---
+    // View
     function getTokenValue(uint256 tokenId) public view returns (uint256) {
         return depositValue[tokenId];
     }
@@ -355,11 +349,11 @@ contract SolomonTreasury is AccessControl {
     uint256 public lastUpdateTimestamp;
 
 
-    uint256 public baseRate;        // R0: Annual interest rate when U = 0
-    uint256 public kinkRate;        // Rkink: Annual interest rate at Ukink
-    uint256 public maxRate;         // Rmax: Annual interest rate when U = 100%
-    uint256 public kinkUtilization; // Ukink: Optimal utilization rate (e.g., 80% = 0.8 * 1e18)
-    uint256 public reserveFactor;   // Reserve factor (e.g., 10% = 0.1 * 1e18)
+    uint256 public baseRate;        
+    uint256 public kinkRate;        
+    uint256 public maxRate;         
+    uint256 public kinkUtilization; 
+    uint256 public reserveFactor;   
 
 
     // Deposit Information
